@@ -1,9 +1,9 @@
-
 name: React CI/CD
 
 on:
   push:
-    branches: [ deploy ]
+    branches:
+      - deploy
 
 jobs:
   build:
@@ -12,16 +12,35 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [18.x]  # You can choose the Node.js version you need
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
+
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-        
-    - run: npm i
-    - run: npm test
-    - run: npm run build
+
+    - name: Install Dependencies
+      run: npm i --verbose  # Use verbose mode for debugging
+
+    - name: Authenticate with Private Registry
+      run: |
+        npm login --registry=https://your-private-registry.com --scope=@your-scope --always-auth
+        npm config set //your-private-registry.com/:_authToken=${NODE_AUTH_TOKEN}
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Set NPM Registry to Public
+      run: npm config set registry https://registry.npmjs.org/
+
+    - name: Clear NPM Cache
+      run: npm cache clean --force
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Build
+      run: npm run build
